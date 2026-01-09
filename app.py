@@ -391,6 +391,27 @@ def create_user(_conn, username: str, password: str) -> Tuple[bool, str]:
 
 def main():
     st.title("🏈 Fantasy Football Playoffs - 2026")
+    
+    # Instructions
+    with st.expander("📖 How It Works", expanded=True):
+        st.markdown("""
+        **Thanks for joining the 5th Annual Fantasy Football Playoffs. Here's how it works:**
+        
+        1. Each team picks one QB, two RBs, two WRs, and one TE every week of the playoffs.
+        
+        2. Once you use a player, you can't choose them again the rest of the playoffs. For instance, if you use Josh Allen this week, you can't pick him again no matter how far the Bills advance. Choose carefully so you're left with options for the Super Bowl!
+        
+        3. There are no weekly winners. The winner is whoever has the most points at the end of the playoffs.
+        
+        4. It's 0 points per reception (PPR).
+        
+        5. Submissions can be made and lineups can be edited up until 5 minutes before the first game each week. The first game is at 4:30pm EST on Saturday this week, so lineups will lock at 4:25pm EST.
+        
+        6. Please Venmo tim-roberts-16 $40 if you're in.
+        
+        **Have fun!**
+        """)
+    
     st.markdown("---")
     
     # Initialize Google Sheets connection
