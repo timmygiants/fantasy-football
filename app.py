@@ -412,7 +412,16 @@ def main():
         with tab1:
             st.subheader("Login to Your Account")
             
-            # Load users to get list of available usernames
+            # Load users to get list of available usernames (with shorter cache for fresh data)
+            # Use a session state key to force refresh when needed
+            if 'users_list_refresh' not in st.session_state:
+                st.session_state.users_list_refresh = 0
+            
+            # Clear cache if we need fresh data (after account creation)
+            if st.session_state.users_list_refresh > 0:
+                load_users_from_sheet.clear()
+                st.session_state.users_list_refresh = 0
+            
             users_df = load_users_from_sheet(conn)
             picks_df = load_picks_from_sheet(conn)
             
@@ -492,10 +501,19 @@ def main():
                 else:
                     success, message = create_user(conn, new_username.strip(), new_password.strip())
                     if success:
+                        # Clear cache to refresh user list
+                        load_users_from_sheet.clear()
+                        
+                        # Trigger refresh of user list in login tab
+                        st.session_state.users_list_refresh = 1
+                        
+                        # Auto-login the user
+                        st.session_state.authenticated = True
+                        st.session_state.username = new_username.strip()
+                        
                         st.success(f"✅ {message}")
-                        st.info("You can now login with your new account!")
-                        # Auto-switch to login tab would be nice, but Streamlit doesn't support that
-                        # So we'll just show a message
+                        st.info("🔄 Logging you in...")
+                        st.rerun()
                     else:
                         st.error(f"❌ {message}")
         
