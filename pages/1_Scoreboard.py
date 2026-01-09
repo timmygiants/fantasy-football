@@ -2,6 +2,8 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from typing import Dict, List
+from datetime import datetime
+import pytz
 
 st.set_page_config(
     page_title="Scoreboard - Fantasy Football Playoffs",
@@ -10,6 +12,21 @@ st.set_page_config(
 )
 
 PLAYOFF_WEEKS = ["Wildcard", "Divisional", "Conference", "Super Bowl"]
+
+# Game start times (Eastern Time)
+GAME_START_TIMES = {
+    "Wildcard": datetime(2026, 1, 10, 16, 30, tzinfo=pytz.timezone('US/Eastern')),
+    # Other weeks TBD - will remain hidden until scheduled
+}
+
+
+def games_have_started(week: str) -> bool:
+    """Check if games have started for a given week"""
+    if week not in GAME_START_TIMES:
+        return False  # Hide if no start time defined
+    
+    now = datetime.now(pytz.timezone('US/Eastern'))
+    return now >= GAME_START_TIMES[week]
 
 
 @st.cache_resource
@@ -109,7 +126,8 @@ def get_user_total_points(picks_df: pd.DataFrame, scores_df: pd.DataFrame,
 
 
 def render_baseball_card(username: str, week_scores: Dict, week_total: float,
-                         running_total: float, rank: int, selected_week: str) -> None:
+                         running_total: float, rank: int, selected_week: str,
+                         show_players: bool = True) -> None:
     """Render a baseball card style view for a user's lineup using Streamlit components"""
 
     with st.container(border=True):
@@ -128,6 +146,11 @@ def render_baseball_card(username: str, week_scores: Dict, week_total: float,
         for pos in ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE']:
             player_data = week_scores.get(pos, {'player': '', 'points': 0.0})
             player_name = player_data.get('player', '') or '-'
+            
+            # Hide player names if games haven't started
+            if not show_players and player_name != '-':
+                player_name = '🔒 Hidden'
+            
             points = player_data.get('points', 0.0)
             points_display = f"{points:.1f}" if points > 0 else "-"
 
@@ -147,6 +170,9 @@ def render_scoreboard(picks_df: pd.DataFrame, scores_df: pd.DataFrame,
     if picks_df.empty:
         st.info("No picks have been submitted yet.")
         return
+    
+    # Check if player names should be shown
+    show_players = games_have_started(selected_week)
 
     all_users = picks_df['User Name'].dropna().unique().tolist()
 
@@ -167,6 +193,10 @@ def render_scoreboard(picks_df: pd.DataFrame, scores_df: pd.DataFrame,
     # Sort by running total (descending)
     user_totals.sort(key=lambda x: x['running_total'], reverse=True)
 
+    # Show lock notice if games haven't started
+    if not show_players:
+        st.info("🔒 Player lineups will be revealed when games start.")
+    
     st.markdown(f"### {selected_week} Lineups")
 
     # Create columns for baseball cards (3 per row)
@@ -189,7 +219,8 @@ def render_scoreboard(picks_df: pd.DataFrame, scores_df: pd.DataFrame,
                         week_total=week_total,
                         running_total=user_data['running_total'],
                         rank=rank,
-                        selected_week=selected_week
+                        selected_week=selected_week,
+                        show_players=show_players
                     )
 
 
