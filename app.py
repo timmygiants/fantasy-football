@@ -361,7 +361,7 @@ def create_user(_conn, username: str, password: str) -> Tuple[bool, str]:
         return False, f"Error creating account: {str(e)}"
 
 def main():
-    st.title("🏈 Fantasy Football Playoffs - One and Done")
+    st.title("🏈 Fantasy Football Playoffs - 2026")
     st.markdown("---")
     
     # Initialize Google Sheets connection
