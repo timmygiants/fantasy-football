@@ -407,7 +407,9 @@ def main():
         
         5. Submissions can be made and lineups can be edited up until 5 minutes before the first game each week. The first game is at 4:30pm EST on Saturday this week, so lineups will lock at 4:25pm EST.
         
-        6. Please Venmo tim-roberts-16 $40 if you're in.
+        6. Please Venmo tim-roberts-16 $40 if you're in. Make sure to include your username in the memo.
+
+        7. To check the live leaderboard, click the "Scoreboard" tab on the left sidebar.
         
         **Have fun!**
         """)
