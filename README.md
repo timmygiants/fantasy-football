@@ -1,6 +1,6 @@
-# Fantasy Football Playoffs - One and Done App
+# Fantasy Football Playoffs - 2026
 
-A Streamlit application for managing a "One and Done" fantasy football playoff league where users can only pick each player once throughout the playoffs.
+A Streamlit application for managing a fantasy football playoff league where users can only pick each player once throughout the playoffs.
 
 ## Features
 
