@@ -7,7 +7,7 @@ from typing import List, Dict, Set, Tuple, Optional
 
 # Page configuration
 st.set_page_config(
-    page_title="Fantasy Football Playoffs - One and Done",
+    page_title="Fantasy Football Playoffs - 2026",
     page_icon="🏈",
     layout="wide"
 )
