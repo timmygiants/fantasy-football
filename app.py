@@ -24,30 +24,58 @@ def init_gsheets():
         st.info("Please check your .streamlit/secrets.toml configuration")
         return None
 
-# Sample player data - In production, you might load this from a separate Google Sheet
+# Full player list - Used as fallback when Google Sheet connection fails
 SAMPLE_PLAYERS = {
     "QB": [
-        "Patrick Mahomes", "Josh Allen", "Lamar Jackson", "Jalen Hurts", 
-        "Dak Prescott", "Tua Tagovailoa", "Brock Purdy", "C.J. Stroud",
-        "Jared Goff", "Baker Mayfield", "Matthew Stafford", "Jordan Love"
+        "Josh Allen", "Trevor Lawrence", "Drake Maye", "Justin Herbert",
+        "Bo Nix", "CJ Stroud", "Aaron Rodgers", "Bryce Young",
+        "Matthew Stafford", "Jalen Hurts", "Jordan Love", "Caleb Williams",
+        "Brock Purdy", "Sam Darnold"
     ],
     "RB": [
-        "Christian McCaffrey", "Derrick Henry", "Josh Jacobs", "Saquon Barkley",
-        "Alvin Kamara", "Aaron Jones", "Rachaad White", "Isiah Pacheco",
-        "Kyren Williams", "James Cook", "De'Von Achane", "Breece Hall",
-        "Travis Etienne", "Joe Mixon", "Tony Pollard", "Gus Edwards"
+        "Christian McCaffrey", "Saquon Barkley", "Kyren Williams", "James Cook III",
+        "Travis Etienne Jr.", "RJ Harvey", "TreVeyon Henderson", "Kenneth Walker III",
+        "Josh Jacobs", "Rhamondre Stevenson", "D'Andre Swift", "Blake Corum",
+        "Zach Charbonnet", "Woody Marks", "Omarion Hampton", "Jaylen Warren",
+        "Kenneth Gainwell", "Kyle Monangai", "Rico Dowdle", "Bhayshul Tuten",
+        "Ty Johnson", "Chuba Hubbard", "Tank Bigsby", "Brian Robinson Jr.",
+        "Emanuel Wilson", "Ray Davis", "Kimani Vidal", "Jaleel McLaughlin",
+        "J.K. Dobbins", "Jawhar Jordan", "Nick Chubb", "Kyle Juszczyk",
+        "Will Shipley", "Ronnie Rivers", "Tyler Badie", "Kaleb Johnson",
+        "Chris Brooks", "Dare Ogunbowale", "Isaac Guerendo", "Jarquez Hunter",
+        "Trevor Etienne", "Damien Martinez", "Travis Homer", "Elijah Mitchell",
+        "Jordan James", "A.J. Dillon"
     ],
     "WR": [
-        "Tyreek Hill", "CeeDee Lamb", "Amon-Ra St. Brown", "Mike Evans",
-        "Stefon Diggs", "Davante Adams", "Keenan Allen", "Deebo Samuel",
-        "Jaylen Waddle", "Terry McLaurin", "Amari Cooper", "DJ Moore",
-        "Calvin Ridley", "Tyler Lockett", "Brandon Aiyuk", "Puka Nacua",
-        "Rashee Rice", "Nico Collins", "Garrett Wilson", "Chris Olave"
+        "Puka Nacua", "Jaxon Smith-Njigba", "Davante Adams", "Stefon Diggs",
+        "A.J. Brown", "DeVonta Smith", "Nico Collins", "Courtland Sutton",
+        "Jakobi Meyers", "Khalil Shakir", "Parker Washington", "Jauan Jennings",
+        "Christian Watson", "Ladd McConkey", "Luther Burden III", "Brian Thomas Jr.",
+        "Ricky Pearsall", "DJ Moore", "DK Metcalf", "Troy Franklin",
+        "Tetairoa McMillan", "Rome Odunze", "Quentin Johnston", "Kayshon Boutte",
+        "Jayden Higgins", "Jayden Reed", "Cooper Kupp", "Rashid Shaheed",
+        "Keenan Allen", "Romeo Doubs", "Brandin Cooks", "Pat Bryant",
+        "DeMario Douglas", "Kyle Williams", "Joshua Palmer", "Marvin Mims Jr.",
+        "Christian Kirk", "Jalen Coker", "Dontayvion Wicks", "Jaylin Noel",
+        "Matthew Golden", "Jahan Dotson", "Tre Harris", "Xavier Legette",
+        "Tyrell Shavers", "Adam Thielen", "Tutu Atwell", "Keon Coleman",
+        "Kendrick Bourne", "Calvin Austin III", "Tim Patrick", "Gabe Davis",
+        "Demarcus Robinson", "Dyami Brown", "Xavier Smith", "Elijah Moore",
+        "Olamide Zaccheaus", "Konata Mumpfield", "Efton Chism III", "Lil'Jordan Humphrey",
+        "Marquez Valdes-Scantling", "Scotty Miller", "Roman Wilson", "Xavier Hutchinson",
+        "Jordan Whittington", "Jake Bobo", "Mack Hollins", "Jimmy Horn Jr.",
+        "Darius Cooper", "KeAndre Lambert-Smith", "Derius Davis", "Curtis Samuel",
+        "Braxton Berrios", "Skyy Moore", "Devin Duvernay", "Hunter Renfrow",
+        "Justin Watson", "Savion Williams", "Jordan Watkins"
     ],
     "TE": [
-        "Travis Kelce", "Mark Andrews", "Trey McBride", "Sam LaPorta",
-        "George Kittle", "Evan Engram", "David Njoku", "Dalton Kincaid",
-        "Jake Ferguson", "Tyler Higbee", "Kyle Pitts", "Cole Kmet"
+        "George Kittle", "Dallas Goedert", "Hunter Henry", "Colston Loveland",
+        "Dalton Kincaid", "Brenton Strange", "Tyler Higbee", "Dalton Schultz",
+        "AJ Barner", "Colby Parkinson", "Dawson Knox", "Evan Engram",
+        "Oronde Gadsden II", "Pat Freiermuth", "Terrance Ferguson", "Luke Musgrave",
+        "Cole Kmet", "Jonnu Smith", "Austin Hooper", "Tommy Tremble",
+        "Cade Stover", "Mitchell Evans", "Adam Trautman", "Hunter Long",
+        "Will Dissly", "Davis Allen", "Tyler Conklin"
     ]
 }
 
@@ -69,7 +97,8 @@ def get_all_players(_conn) -> Dict[str, List[str]]:
         players_df = _conn.read(worksheet="players_2", ttl=60)
 
         if players_df.empty:
-            st.warning("Players worksheet is empty, using sample players")
+            st.error("⚠️ **Connection Issue:** Could not load players from Google Sheet. Using fallback player list.")
+            st.warning("📱 **Please text Tim Roberts, Mikey Mussell, or Will Nash if you experience this error.**")
             return SAMPLE_PLAYERS
 
         # Organize players by position
@@ -108,12 +137,15 @@ def get_all_players(_conn) -> Dict[str, List[str]]:
         players_by_position = {k: v for k, v in players_by_position.items() if v}
 
         if not players_by_position:
-            st.warning("No players found in Players worksheet, using sample players")
+            st.error("⚠️ **Connection Issue:** No players found in Players worksheet. Using fallback player list.")
+            st.warning("📱 **Please text Tim Roberts, Mikey Mussell, or Will Nash if you experience this error.**")
             return SAMPLE_PLAYERS
 
         return players_by_position
     except Exception as e:
-        st.warning(f"Could not load players from sheet: {e}. Using sample players.")
+        st.error("⚠️ **Connection Issue:** Could not load players from Google Sheet.")
+        st.warning(f"📱 **Please text Tim Roberts, Mikey Mussell, or Will Nash if you experience this error.**")
+        st.caption(f"Error details: {str(e)}")
         return SAMPLE_PLAYERS
 
 
@@ -845,4 +877,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
