@@ -783,8 +783,13 @@ def main():
         logger.info(f"Week override: {args.week}")
 
     try:
-        # Load configuration
-        config = Config.from_secrets_toml()
+        # Load configuration - try environment first (for GitHub Actions), fall back to secrets.toml
+        if os.environ.get("RAPIDAPI_KEY"):
+            logger.info("Loading configuration from environment variables")
+            config = Config.from_environment()
+        else:
+            logger.info("Loading configuration from secrets.toml")
+            config = Config.from_secrets_toml()
 
         if not config.rapidapi_key:
             logger.error("RapidAPI key not configured. Add [rapidapi] key = '...' to secrets.toml")
