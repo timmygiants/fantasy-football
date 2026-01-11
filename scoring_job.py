@@ -18,7 +18,6 @@ Recommended cron schedule (during game days):
 """
 
 import argparse
-import os
 import sys
 import time
 import logging
@@ -110,36 +109,6 @@ class Config:
                 "https://www.googleapis.com/oauth2/v1/certs"
             ),
             "client_x509_cert_url": gsheets.get("client_x509_cert_url", ""),
-        }
-
-        return config
-
-    @classmethod
-    def from_environment(cls) -> "Config":
-        """Load configuration from environment variables (for GitHub Actions)."""
-        config = cls()
-
-        # Load RapidAPI key
-        config.rapidapi_key = os.environ.get("RAPIDAPI_KEY", "")
-
-        # Load Google Sheets connection info
-        config.spreadsheet_url = os.environ.get("SPREADSHEET_URL", "")
-
-        # Build GCP credentials dict from environment
-        config.gcp_credentials = {
-            "type": os.environ.get("GCP_TYPE", "service_account"),
-            "project_id": os.environ.get("GCP_PROJECT_ID", ""),
-            "private_key_id": os.environ.get("GCP_PRIVATE_KEY_ID", ""),
-            "private_key": os.environ.get("GCP_PRIVATE_KEY", "").replace("\\n", "\n"),
-            "client_email": os.environ.get("GCP_CLIENT_EMAIL", ""),
-            "client_id": os.environ.get("GCP_CLIENT_ID", ""),
-            "auth_uri": os.environ.get("GCP_AUTH_URI", "https://accounts.google.com/o/oauth2/auth"),
-            "token_uri": os.environ.get("GCP_TOKEN_URI", "https://oauth2.googleapis.com/token"),
-            "auth_provider_x509_cert_url": os.environ.get(
-                "GCP_AUTH_PROVIDER_CERT_URL",
-                "https://www.googleapis.com/oauth2/v1/certs"
-            ),
-            "client_x509_cert_url": os.environ.get("GCP_CLIENT_CERT_URL", ""),
         }
 
         return config
@@ -748,13 +717,7 @@ def update_scores(
         # Reorder columns
         updated_df = updated_df[[c for c in columns if c in updated_df.columns]]
         sheets_client.write_worksheet("scores", updated_df)
-        logger.info("Update - try environment first (for GitHub Actions), fall back to secrets.toml")
-        if os.environ.get("RAPIDAPI_KEY"):
-            logger.info("Loading configuration from environment variables")
-            config = Config.from_environment()
-        else:
-            logger.info("Loading configuration from secrets.toml")
-    
+
     return updated_count
 
 
@@ -783,28 +746,9 @@ def main():
         logger.info(f"Week override: {args.week}")
 
     try:
-        # Detect if running in GitHub Actions
-        is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
-        
-        # Load configuration - try environment first (for GitHub Actions), fall back to secrets.toml
-        if os.environ.get("RAPIDAPI_KEY"):
-            logger.info("Loading configuration from environment variables")
-            config = Config.from_environment()
-        elif is_github_actions:
-            logger.error(
-                "Running in GitHub Actions but RAPIDAPI_KEY not found in environment. \n"
-                "Please add the following secrets to your GitHub repository:\n"
-                "  - RAPIDAPI_KEY\n"
-                "  - SPREADSHEET_URL\n"
-                "  - GCP_TYPE, GCP_PROJECT_ID, GCP_PRIVATE_KEY_ID, GCP_PRIVATE_KEY\n"
-                "  - GCP_CLIENT_EMAIL, GCP_CLIENT_ID\n"
-                "  - GCP_AUTH_URI, GCP_TOKEN_URI, GCP_AUTH_PROVIDER_CERT_URL, GCP_CLIENT_CERT_URL\n"
-                "Go to: https://github.com/timmygiants/fantasy-football/settings/secrets/actions"
-            )
-            sys.exit(1)
-        else:
-            logger.info("Loading configuration from secrets.toml")
-            config = Config.from_secrets_toml()
+        # Load configuration from secrets.toml
+        logger.info("Loading configuration from secrets.toml")
+        config = Config.from_secrets_toml()
 
         if not config.rapidapi_key:
             logger.error("RapidAPI key not configured")
