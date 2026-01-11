@@ -3,7 +3,7 @@ name: Fetch NFL Scores
 on:
   schedule:
     # Run every 10 minutes
-    - cron: '*/60 * * * *'
+    - cron: '*/20 * * * *'
 
   # Allow manual trigger from Actions tab
   workflow_dispatch:
