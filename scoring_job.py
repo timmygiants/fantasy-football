@@ -783,16 +783,31 @@ def main():
         logger.info(f"Week override: {args.week}")
 
     try:
+        # Detect if running in GitHub Actions
+        is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+        
         # Load configuration - try environment first (for GitHub Actions), fall back to secrets.toml
         if os.environ.get("RAPIDAPI_KEY"):
             logger.info("Loading configuration from environment variables")
             config = Config.from_environment()
+        elif is_github_actions:
+            logger.error(
+                "Running in GitHub Actions but RAPIDAPI_KEY not found in environment. \n"
+                "Please add the following secrets to your GitHub repository:\n"
+                "  - RAPIDAPI_KEY\n"
+                "  - SPREADSHEET_URL\n"
+                "  - GCP_TYPE, GCP_PROJECT_ID, GCP_PRIVATE_KEY_ID, GCP_PRIVATE_KEY\n"
+                "  - GCP_CLIENT_EMAIL, GCP_CLIENT_ID\n"
+                "  - GCP_AUTH_URI, GCP_TOKEN_URI, GCP_AUTH_PROVIDER_CERT_URL, GCP_CLIENT_CERT_URL\n"
+                "Go to: https://github.com/timmygiants/fantasy-football/settings/secrets/actions"
+            )
+            sys.exit(1)
         else:
             logger.info("Loading configuration from secrets.toml")
             config = Config.from_secrets_toml()
 
         if not config.rapidapi_key:
-            logger.error("RapidAPI key not configured. Add [rapidapi] key = '...' to secrets.toml")
+            logger.error("RapidAPI key not configured")
             sys.exit(1)
 
         if not config.spreadsheet_url:
