@@ -33,8 +33,7 @@ from google.oauth2.service_account import Credentials
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -75,7 +74,9 @@ class Config:
         self.gcp_credentials: Dict[str, Any] = {}
 
     @classmethod
-    def from_secrets_toml(cls, secrets_path: str = ".streamlit/secrets.toml") -> "Config":
+    def from_secrets_toml(
+        cls, secrets_path: str = ".streamlit/secrets.toml"
+    ) -> "Config":
         """Load configuration from Streamlit secrets.toml file."""
         import tomli
 
@@ -103,11 +104,15 @@ class Config:
             "private_key": gsheets.get("private_key", ""),
             "client_email": gsheets.get("client_email", ""),
             "client_id": gsheets.get("client_id", ""),
-            "auth_uri": gsheets.get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
-            "token_uri": gsheets.get("token_uri", "https://oauth2.googleapis.com/token"),
+            "auth_uri": gsheets.get(
+                "auth_uri", "https://accounts.google.com/o/oauth2/auth"
+            ),
+            "token_uri": gsheets.get(
+                "token_uri", "https://oauth2.googleapis.com/token"
+            ),
             "auth_provider_x509_cert_url": gsheets.get(
                 "auth_provider_x509_cert_url",
-                "https://www.googleapis.com/oauth2/v1/certs"
+                "https://www.googleapis.com/oauth2/v1/certs",
             ),
             "client_x509_cert_url": gsheets.get("client_x509_cert_url", ""),
         }
@@ -125,8 +130,7 @@ class GoogleSheetsClient:
 
     def __init__(self, credentials_dict: Dict[str, Any], spreadsheet_url: str):
         self.credentials = Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=self.SCOPES
+            credentials_dict, scopes=self.SCOPES
         )
         self.client = gspread.authorize(self.credentials)
         self.spreadsheet = self.client.open_by_url(spreadsheet_url)
@@ -149,7 +153,7 @@ class GoogleSheetsClient:
             worksheet = self.spreadsheet.add_worksheet(
                 title=worksheet_name,
                 rows=max(100, len(df) + 10),
-                cols=len(df.columns) + 2
+                cols=len(df.columns) + 2,
             )
             logger.info(f"Created new worksheet: {worksheet_name}")
 
@@ -159,7 +163,7 @@ class GoogleSheetsClient:
             # Convert all values to strings to avoid serialization issues
             df_str = df.astype(str)
             data = [df_str.columns.tolist()] + df_str.values.tolist()
-            worksheet.update('A1', data)
+            worksheet.update("A1", data)
 
 
 class RapidAPIClient:
@@ -170,9 +174,7 @@ class RapidAPIClient:
         self.base_url = f"https://{RAPIDAPI_HOST}"
 
     def get_player_stats(
-        self,
-        player_id: str,
-        num_games: int = 1
+        self, player_id: str, num_games: int = 1
     ) -> Optional[Dict[str, Any]]:
         """
         Fetch player stats for recent games.
@@ -220,15 +222,13 @@ class RapidAPIClient:
             except requests.exceptions.RequestException as e:
                 logger.error(f"API request failed (attempt {attempt + 1}): {e}")
                 if attempt < MAX_RETRIES - 1:
-                    time.sleep(2 ** attempt)
+                    time.sleep(2**attempt)
 
         return None
 
 
 def update_game_statuses(
-    sheets_client: GoogleSheetsClient,
-    api_key: str,
-    schedule_df: pd.DataFrame
+    sheets_client: GoogleSheetsClient, api_key: str, schedule_df: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Fetch current game statuses from API and update the schedule sheet.
@@ -280,12 +280,7 @@ def update_game_statuses(
 
         url = f"https://{RAPIDAPI_HOST}/getNFLGamesForWeek"
         try:
-            response = requests.get(
-                url,
-                headers=headers,
-                params=params,
-                timeout=30
-            )
+            response = requests.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             data = response.json()
 
@@ -356,7 +351,7 @@ def get_active_games(schedule_df: pd.DataFrame) -> List[Dict[str, Any]]:
 
         if game_status == "in_progress":
             active_games.append(row.to_dict())
-        elif game_status == "final":
+        elif game_status == "final" or game_status == "final/ot":
             # Include final games to ensure we have complete data
             active_games.append(row.to_dict())
         elif game_status == "scheduled":
@@ -370,7 +365,11 @@ def get_active_games(schedule_df: pd.DataFrame) -> List[Dict[str, Any]]:
                         game_time = game_time.replace(tzinfo=eastern)
                     # Include games that started within the last 4 hours
                     # or are about to start within 15 minutes
-                    if (game_time - timedelta(minutes=15)) <= now <= (game_time + timedelta(hours=4)):
+                    if (
+                        (game_time - timedelta(minutes=15))
+                        <= now
+                        <= (game_time + timedelta(hours=4))
+                    ):
                         active_games.append(row.to_dict())
             except Exception as e:
                 logger.debug(f"Could not parse game time for {game_id}: {e}")
@@ -383,7 +382,7 @@ def get_players_to_fetch(
     picks_df: pd.DataFrame,
     active_games: List[Dict[str, Any]],
     scores_df: pd.DataFrame,
-    week_override: Optional[str] = None
+    week_override: Optional[str] = None,
 ) -> List[Dict[str, str]]:
     """
     Get list of players who need scores fetched.
@@ -452,7 +451,7 @@ def get_players_to_fetch(
 
     # Get all picked player names for active weeks, tracking which week they were picked for
     picked_players_by_week = {}  # week -> set of player names
-    position_cols = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE']
+    position_cols = ["QB", "RB1", "RB2", "WR1", "WR2", "TE"]
 
     for _, row in picks_df.iterrows():
         pick_week = str(row.get("Week", "")).strip()
@@ -472,8 +471,14 @@ def get_players_to_fetch(
                 if player and pd.notna(player):
                     picked_players_by_week[matching_week].add(str(player).strip())
 
-    total_unique_players = len(set().union(*picked_players_by_week.values())) if picked_players_by_week else 0
-    logger.info(f"Found {total_unique_players} unique players picked across active weeks")
+    total_unique_players = (
+        len(set().union(*picked_players_by_week.values()))
+        if picked_players_by_week
+        else 0
+    )
+    logger.info(
+        f"Found {total_unique_players} unique players picked across active weeks"
+    )
 
     # Build player lookup with playerID and team
     player_lookup = {}
@@ -517,45 +522,57 @@ def get_players_to_fetch(
 
                 if not scores_df.empty:
                     existing_score = scores_df[
-                        (scores_df['playerID'].astype(str) == str(player_id)) &
-                        (scores_df['gameWeek'].astype(str) == str(week))
+                        (scores_df["playerID"].astype(str) == str(player_id))
+                        & (scores_df["gameWeek"].astype(str) == str(week))
                     ]
 
                     if not existing_score.empty:
                         # Check if the existing score was captured when game was final
-                        existing_game_status = str(existing_score.iloc[0].get('gameStatus', '')).lower().strip()
+                        existing_game_status = (
+                            str(existing_score.iloc[0].get("gameStatus", ""))
+                            .lower()
+                            .strip()
+                        )
 
-                        if existing_game_status == 'final':
+                        if existing_game_status == "final":
                             # We already have the final score - skip this player
                             should_skip = True
                             skipped_final += 1
 
                 if not should_skip:
-                    result.append({
-                        "playerID": player_id,
-                        "playerName": player_name,
-                        "gameWeek": week,
-                    })
+                    result.append(
+                        {
+                            "playerID": player_id,
+                            "playerName": player_name,
+                            "gameWeek": week,
+                        }
+                    )
             else:
                 logger.warning(f"No playerID found for: {player_name}")
 
     if skipped_not_started > 0:
-        logger.info(f"Skipped {skipped_not_started} players whose games haven't started yet")
+        logger.info(
+            f"Skipped {skipped_not_started} players whose games haven't started yet"
+        )
     if skipped_final > 0:
-        logger.info(f"Skipped {skipped_final} players who already have final scores recorded")
+        logger.info(
+            f"Skipped {skipped_final} players who already have final scores recorded"
+        )
 
     # Deduplicate by playerID + gameWeek combination
     seen = set()
     deduplicated = []
     for item in result:
-        key = (item['playerID'], item['gameWeek'])
+        key = (item["playerID"], item["gameWeek"])
         if key not in seen:
             seen.add(key)
             deduplicated.append(item)
-    
+
     if len(result) != len(deduplicated):
-        logger.warning(f"Removed {len(result) - len(deduplicated)} duplicate player-week combinations")
-    
+        logger.warning(
+            f"Removed {len(result) - len(deduplicated)} duplicate player-week combinations"
+        )
+
     return deduplicated
 
 
@@ -609,7 +626,7 @@ def update_scores(
     sheets_client: GoogleSheetsClient,
     api_client: RapidAPIClient,
     players_to_fetch: List[Dict[str, str]],
-    active_games: List[Dict[str, Any]]
+    active_games: List[Dict[str, Any]],
 ) -> int:
     """
     Fetch and update scores for the given players.
@@ -619,7 +636,7 @@ def update_scores(
     if not players_to_fetch:
         logger.info("No players to fetch scores for")
         return 0
-    
+
     # Build map of week -> list of gameIDs to validate responses
     week_to_games = {}
     # Build map of gameID -> gameStatus to track if game is final
@@ -664,14 +681,14 @@ def update_scores(
         if stats:
             parsed = parse_stats_from_response(stats)
             returned_game_id = str(parsed.get("gameID", "")).strip()
-            
+
             # Validate that the returned game is from the correct week
             expected_game_ids = week_to_games.get(game_week, set())
-            
+
             if not returned_game_id:
                 logger.warning(f"  -> No gameID in API response for {player_name}")
                 continue
-            
+
             if returned_game_id not in expected_game_ids:
                 logger.warning(
                     f"  -> Skipping {player_name}: API returned game {returned_game_id} "
@@ -706,7 +723,9 @@ def update_scores(
             existing_scores[key] = score_record
             updated_count += 1
 
-            logger.info(f"  -> {player_name}: {score_record['fantasyPoints']} pts (game {returned_game_id})")
+            logger.info(
+                f"  -> {player_name}: {score_record['fantasyPoints']} pts (game {returned_game_id})"
+            )
         else:
             logger.warning(f"  -> No stats returned for {player_name}")
 
@@ -714,9 +733,23 @@ def update_scores(
     if existing_scores:
         # Define column order
         columns = [
-            "playerID", "playerName", "gameID", "gameWeek", "gameStatus", "fantasyPoints",
-            "passYards", "passTD", "passInt", "rushYards", "rushTD",
-            "recYards", "recTD", "receptions", "targets", "fumbles", "lastUpdated"
+            "playerID",
+            "playerName",
+            "gameID",
+            "gameWeek",
+            "gameStatus",
+            "fantasyPoints",
+            "passYards",
+            "passTD",
+            "passInt",
+            "rushYards",
+            "rushTD",
+            "recYards",
+            "recTD",
+            "receptions",
+            "targets",
+            "fumbles",
+            "lastUpdated",
         ]
         updated_df = pd.DataFrame(list(existing_scores.values()))
         # Reorder columns
@@ -735,7 +768,7 @@ def parse_args():
         "--week",
         type=str,
         help="Override week to fetch (e.g., 'Wildcard', 'Week 18'). "
-             "Bypasses schedule-based game detection."
+        "Bypasses schedule-based game detection.",
     )
     return parser.parse_args()
 
@@ -765,8 +798,7 @@ def main():
 
         # Initialize clients
         sheets_client = GoogleSheetsClient(
-            config.gcp_credentials,
-            config.spreadsheet_url
+            config.gcp_credentials, config.spreadsheet_url
         )
         api_client = RapidAPIClient(config.rapidapi_key)
 
@@ -782,7 +814,9 @@ def main():
         logger.info(f"Loaded {len(scores_df)} existing scores")
 
         # Update game statuses from API before processing
-        schedule_df = update_game_statuses(sheets_client, config.rapidapi_key, schedule_df)
+        schedule_df = update_game_statuses(
+            sheets_client, config.rapidapi_key, schedule_df
+        )
 
         # Get active games (still useful for logging even with override)
         active_games = get_active_games(schedule_df)
@@ -797,7 +831,9 @@ def main():
         players_to_fetch = get_players_to_fetch(
             players_df, picks_df, active_games, scores_df, week_override=args.week
         )
-        logger.info(f"Will fetch scores for {len(players_to_fetch)} player-week combinations")
+        logger.info(
+            f"Will fetch scores for {len(players_to_fetch)} player-week combinations"
+        )
 
         if not players_to_fetch:
             logger.info("No players need scores fetched")
@@ -805,7 +841,9 @@ def main():
             return
 
         # Update scores
-        updated = update_scores(sheets_client, api_client, players_to_fetch, active_games)
+        updated = update_scores(
+            sheets_client, api_client, players_to_fetch, active_games
+        )
 
         logger.info(f"Successfully updated {updated} player scores")
         logger.info("Scoring job completed")
