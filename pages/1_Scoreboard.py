@@ -13,9 +13,18 @@ PLAYOFF_WEEKS = ["Wildcard", "Divisional", "Conference", "Super Bowl"]
 
 # Game start times (Eastern Time)
 GAME_START_TIMES = {
-    "Wildcard": datetime(2026, 1, 10, 16, 30, tzinfo=pytz.timezone("US/Eastern")),
-    "Divisional": datetime(2026, 1, 10, 16, 30, tzinfo=pytz.timezone("US/Eastern")),
-    # Other weeks TBD - will remain hidden until scheduled
+    "Wildcard": datetime(
+        2026, 1, 10, 16, 25, tzinfo=pytz.timezone("US/Eastern")
+    ),  # 4:25 PM EST
+    "Divisional": datetime(
+        2026, 1, 17, 16, 25, tzinfo=pytz.timezone("US/Eastern")
+    ),  # Update as needed
+    "Conference": datetime(
+        2026, 1, 25, 15, 00, tzinfo=pytz.timezone("US/Eastern")
+    ),  # Update as needed
+    "Super Bowl": datetime(
+        2026, 2, 8, 5, 25, tzinfo=pytz.timezone("US/Eastern")
+    ),  # Update as needed
 }
 
 
@@ -159,13 +168,15 @@ def render_baseball_card(
 
     with st.container(border=True):
         # Header row with name and season total
-        header_cols = st.columns([1, 1, 1])
+        header_cols = st.columns([2, 1.5, 1.5])
         with header_cols[0]:
             st.markdown(f"**#{rank} {username}**")
         with header_cols[1]:
-            st.metric(f"{selected_week}", f"{week_total:.1f}")
+            st.markdown(f"**{selected_week}**")
+            st.markdown(f"**{week_total:.1f}**")
         with header_cols[2]:
-            st.metric("Season", f"{running_total:.1f}")
+            st.markdown(f"**Season**")
+            st.markdown(f"**{running_total:.1f}**")
 
         st.divider()
 
@@ -185,13 +196,15 @@ def render_collapsible_card(
 
     with st.container(border=True):
         # Summary header always visible
-        header_cols = st.columns([2, 1, 1])
+        header_cols = st.columns([2, 1.5, 1.5])
         with header_cols[0]:
             st.markdown(f"**#{rank} {username}**")
         with header_cols[1]:
-            st.metric(f"{selected_week}", f"{week_total:.1f}")
+            st.markdown(f"**{selected_week}**")
+            st.markdown(f"**{week_total:.1f}**")
         with header_cols[2]:
-            st.metric("Season", f"{running_total:.1f}")
+            st.markdown(f"**Season**")
+            st.markdown(f"**{running_total:.1f}**")
 
         # Collapsible lineup details
         with st.expander("View Lineup"):
