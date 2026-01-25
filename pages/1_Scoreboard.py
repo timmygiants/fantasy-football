@@ -37,6 +37,19 @@ def games_have_started(week: str) -> bool:
     return now >= GAME_START_TIMES[week]
 
 
+def get_most_recent_started_week() -> str:
+    """Get the most recent week that has started, or first week if none have started"""
+    now = datetime.now(pytz.timezone("US/Eastern"))
+    
+    started_weeks = []
+    for week in PLAYOFF_WEEKS:
+        if week in GAME_START_TIMES and now >= GAME_START_TIMES[week]:
+            started_weeks.append(week)
+    
+    # Return the last started week (most recent), or first week if none have started
+    return started_weeks[-1] if started_weeks else PLAYOFF_WEEKS[0]
+
+
 @st.cache_resource
 def init_gsheets():
     """Initialize Google Sheets connection"""
@@ -338,9 +351,13 @@ def main():
     picks_df = load_picks_from_sheet(conn)
     scores_df = load_scores_from_sheet(conn)
 
+    # Get default week (most recent started week)
+    default_week = get_most_recent_started_week()
+    default_index = PLAYOFF_WEEKS.index(default_week)
+
     # Week selector
     selected_week = st.selectbox(
-        "Select Week to View:", PLAYOFF_WEEKS, key="scoreboard_week_select"
+        "Select Week to View:", PLAYOFF_WEEKS, index=default_index, key="scoreboard_week_select"
     )
 
     st.markdown("---")
