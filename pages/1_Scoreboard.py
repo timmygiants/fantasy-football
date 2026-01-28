@@ -160,6 +160,19 @@ def get_user_week_scores(
     if user_picks.empty:
         return {}
 
+    # Sort by Timestamp (descending) to get the most recent submission
+    # Handle both exact match and normalized match cases
+    if "Timestamp" in user_picks.columns:
+        try:
+            # Convert Timestamp to datetime for proper sorting
+            user_picks = user_picks.copy()
+            user_picks["Timestamp"] = pd.to_datetime(user_picks["Timestamp"], errors="coerce")
+            user_picks = user_picks.sort_values("Timestamp", ascending=False, na_position="last")
+        except Exception:
+            # If timestamp parsing fails, just use the order from the sheet
+            pass
+    
+    # Get the most recent submission (first row after sorting)
     pick_row = user_picks.iloc[0]
     position_cols = ["QB", "RB1", "RB2", "WR1", "WR2", "TE"]
 
