@@ -81,14 +81,47 @@ def load_scores_from_sheet(_conn) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def normalize_player_name(name: str) -> str:
+    """Normalize player name for matching by removing common suffixes and variations."""
+    if not name:
+        return ""
+    # Remove common suffixes that might be added after scoring
+    name = str(name).strip()
+    # Remove " - Please pay ASAP" and similar suffixes
+    if " - " in name:
+        name = name.split(" - ")[0].strip()
+    return name
+
+
+def normalize_username(name: str) -> str:
+    """Normalize username for matching by removing common suffixes and variations."""
+    # Same normalization as player names - handles cases where user names change
+    return normalize_player_name(name)
+
+
 def get_player_score(scores_df: pd.DataFrame, player_name: str, week: str) -> float:
     """Get fantasy points for a specific player in a specific week"""
     if scores_df.empty or not player_name:
         return 0.0
 
+    # Normalize the input player name
+    normalized_input = normalize_player_name(player_name)
+    
+    # Try exact match first
     player_scores = scores_df[
         (scores_df["playerName"] == player_name) & (scores_df["gameWeek"] == week)
     ]
+    
+    # If no exact match, try normalized match
+    if player_scores.empty and normalized_input != player_name:
+        # Normalize all player names in scores_df for comparison
+        scores_df_normalized = scores_df.copy()
+        scores_df_normalized["playerName_normalized"] = scores_df_normalized["playerName"].apply(normalize_player_name)
+        
+        player_scores = scores_df_normalized[
+            (scores_df_normalized["playerName_normalized"] == normalized_input) & 
+            (scores_df_normalized["gameWeek"] == week)
+        ]
 
     if player_scores.empty:
         return 0.0
@@ -106,9 +139,23 @@ def get_user_week_scores(
     if picks_df.empty:
         return {}
 
+    # Try exact match first
     user_picks = picks_df[
         (picks_df["User Name"] == username) & (picks_df["Week"] == week)
     ]
+
+    # If no exact match, try normalized match (handles cases where user names changed)
+    if user_picks.empty:
+        normalized_username = normalize_username(username)
+        if normalized_username != username:
+            # Normalize all user names in picks_df for comparison
+            picks_df_normalized = picks_df.copy()
+            picks_df_normalized["User Name_normalized"] = picks_df_normalized["User Name"].apply(normalize_username)
+            
+            user_picks = picks_df_normalized[
+                (picks_df_normalized["User Name_normalized"] == normalized_username) & 
+                (picks_df_normalized["Week"] == week)
+            ]
 
     if user_picks.empty:
         return {}
@@ -235,13 +282,26 @@ def render_scoreboard(
     # Check if player names should be shown
     show_players = games_have_started(selected_week)
 
-    all_users = picks_df["User Name"].dropna().unique().tolist()
+    # Get all unique user names, but normalize them to group variations together
+    # We'll use the most recent (longest) version of each normalized name for display
+    all_raw_users = picks_df["User Name"].dropna().unique().tolist()
+    
+    # Group users by normalized name, keeping the longest version for display
+    user_name_map = {}  # normalized -> display name (longest version)
+    for user in all_raw_users:
+        normalized = normalize_username(user)
+        if normalized not in user_name_map or len(user) > len(user_name_map[normalized]):
+            user_name_map[normalized] = user
+    
+    # Use the display names (most recent versions) for the list
+    all_users = list(user_name_map.values())
 
     if not all_users:
         st.info("No users found with picks.")
         return
 
     # Calculate running totals for all users
+    # Note: get_user_total_points and get_user_week_scores will handle name normalization
     user_totals = []
     for user in all_users:
         totals = get_user_total_points(picks_df, scores_df, user, PLAYOFF_WEEKS)
@@ -262,13 +322,17 @@ def render_scoreboard(
 
     # Get current user if authenticated
     current_user = st.session_state.get("username", "")
+    
+    # Normalize current user for matching
+    normalized_current_user = normalize_username(current_user) if current_user else ""
 
-    # Find current user's data and rank
+    # Find current user's data and rank (match by normalized name)
     current_user_data = None
     current_user_rank = None
 
     for i, user_data in enumerate(user_totals):
-        if user_data["username"] == current_user:
+        # Match by normalized name to handle name variations
+        if normalize_username(user_data["username"]) == normalized_current_user:
             current_user_data = user_data
             current_user_rank = i + 1
             break
@@ -312,8 +376,8 @@ def render_scoreboard(
                 )
                 week_total = sum(p["points"] for p in week_scores.values())
 
-                # Current user can always see their own lineup
-                user_show_players = True if username == current_user else show_players
+                # Current user can always see their own lineup (match by normalized name)
+                user_show_players = True if normalize_username(username) == normalized_current_user else show_players
 
                 with col:
                     render_collapsible_card(
