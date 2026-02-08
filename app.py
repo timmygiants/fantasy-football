@@ -86,7 +86,7 @@ GAME_CUTOFF_TIMES = {
     "Wildcard": datetime(2026, 1, 10, 16, 25, tzinfo=pytz.timezone('US/Eastern')),  # 4:25 PM EST
     "Divisional": datetime(2026, 1, 17, 16, 25, tzinfo=pytz.timezone('US/Eastern')),  # Update as needed
     "Conference": datetime(2026, 1, 25, 16, 25, tzinfo=pytz.timezone('US/Eastern')),  # Update as needed
-    "Super Bowl": datetime(2026, 2, 8, 5, 25, tzinfo=pytz.timezone('US/Eastern')),  # Update as needed
+    "Super Bowl": datetime(2026, 2, 8, 18, 0, tzinfo=pytz.timezone('US/Eastern')),  # 6:00 PM EST
 }
 
 @st.cache_data(ttl=60)  # Cache for 60 seconds (players don't change often)
